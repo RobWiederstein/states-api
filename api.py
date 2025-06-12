@@ -21,7 +21,6 @@ DATABASE_URL = os.getenv("DATABASE_URL")
 def get_db_connection():
     """Establishes a connection to the database."""
     try:
-        # Use RealDictCursor to get results as dictionaries
         conn = psycopg2.connect(DATABASE_URL)
         return conn
     except psycopg2.OperationalError as e:
@@ -33,70 +32,72 @@ def get_all_states(sort_by: str = Query("name", description="Column to sort by."
     Endpoint to retrieve all states from the database,
     sorted by a specified column.
     """
-    # --- The Fix Starts Here ---
-
-    # 1. Define a whitelist of allowed column names for security
-    allowed_sort_columns = [
-        "name", "population", "income", "illiteracy", "life_exp",
-        "murder", "hs_grad", "frost", "area"
-    ]
-
-    # In your database, the "State" column is likely capitalized. Let's handle that.
-    # The API will accept 'name' but query for 'State'
+    # Define a mapping from the lowercase API parameter to the exact database column name.
+    # This acts as a whitelist for security and a mapping for correctness.
     db_column_map = {
-        "name": '"State"', # Use quotes for case-sensitive column names
-        "population": '"Population"',
-        "income": '"Income"',
-        "illiteracy": '"Illiteracy"',
-        "life_exp": '"Life Exp"',
-        "murder": '"Murder"',
-        "hs_grad": '"HS Grad"',
-        "frost": '"Frost"',
-        "area": '"Area"'
+        "name": "State",
+        "population": "Population",
+        "income": "Income",
+        "illiteracy": "Illiteracy",
+        "life_exp": "Life Exp",
+        "murder": "Murder",
+        "hs_grad": "HS Grad",
+        "frost": "Frost",
+        "area": "Area"
     }
 
-
-    # 2. Validate the user-provided sort_by parameter
-    if sort_by.lower() not in allowed_sort_columns:
+    # Validate the user-provided sort_by parameter against our whitelist
+    api_sort_key = sort_by.lower()
+    if api_sort_key not in db_column_map:
         raise HTTPException(
             status_code=400,
-            detail=f"Invalid sort column. Please use one of: {', '.join(allowed_sort_columns)}"
+            detail=f"Invalid sort column. Please use one of: {', '.join(db_column_map.keys())}"
         )
 
-    # Map the friendly name to the actual database column name
-    sort_column_db = db_column_map.get(sort_by.lower())
+    # Get the actual column name for the database query
+    sort_column_in_db = db_column_map.get(api_sort_key)
+    # Quote the column name to handle spaces and case-sensitivity safely in SQL
+    safe_sort_column = f'"{sort_column_in_db}"'
 
     conn = get_db_connection()
-    # Use RealDictCursor to get results as dictionaries directly
+    # Use RealDictCursor to get results as dictionaries instead of tuples.
     cursor = conn.cursor(cursor_factory=RealDictCursor)
 
-    # 3. Create a dynamic and safe SQL query
-    # Using f-string here is safe ONLY BECAUSE we validated `sort_column_db` against a whitelist.
-    query = f"SELECT * FROM states ORDER BY {sort_column_db} ASC"
+    # Construct the final, safe query
+    query = f"SELECT * FROM states ORDER BY {safe_sort_column} ASC"
 
-    cursor.execute(query)
-    states = cursor.fetchall()
+    try:
+        cursor.execute(query)
+        # fetchall() will return a list of dictionaries, e.g., [{'State': 'Alabama', 'Life Exp': 70.6, ...}]
+        db_results = cursor.fetchall()
+    except psycopg2.Error as e:
+        # NEW: If the query fails, we now catch the error and report it clearly.
+        raise HTTPException(status_code=500, detail=f"Database query failed: {e}")
+    finally:
+        # Always close the connection
+        cursor.close()
+        conn.close()
 
-    cursor.close()
-    conn.close()
+    # Manually format the response to have the lowercase keys the Streamlit app expects.
+    # This is much safer and clearer than the previous complex logic.
+    final_result = []
+    for row in db_results:
+        # The keys from RealDictCursor are the exact column names: 'State', 'Population', 'Life Exp', etc.
+        # The .get() method is used for safety; it returns None if a key is missing.
+        formatted_row = {
+            "name": row.get("State"),
+            "population": row.get("Population"),
+            "income": row.get("Income"),
+            "illiteracy": row.get("Illiteracy"),
+            "life_exp": row.get("Life Exp"),
+            "murder": row.get("Murder"),
+            "hs_grad": row.get("HS Grad"),
+            "frost": row.get("Frost"),
+            "area": row.get("Area"),
+        }
+        final_result.append(formatted_row)
 
-    # 4. The result is already a list of dictionaries, so we just return it.
-    # We need to rename the keys to be lowercase to match the Streamlit app's expectations
-    result = []
-    for row in states:
-        # Create a new dictionary with lowercase keys
-        new_row = {key.lower().replace(" ", "_"): value for key, value in row.items()}
-        # Handle specific name changes
-        if 'state' in new_row:
-            new_row['name'] = new_row.pop('state')
-        if 'life_exp' in new_row:
-             new_row['life_exp'] = new_row.pop('life_exp')
-        if 'hs_grad' in new_row:
-             new_row['hs_grad'] = new_row.pop('hs_grad')
-        result.append(new_row)
-
-    return result
-    # --- The Fix Ends Here ---
+    return final_result
 
 
 @app.get("/")
