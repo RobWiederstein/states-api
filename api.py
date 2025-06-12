@@ -29,17 +29,17 @@ def get_all_states(sort_by: str = Query("name", description="Column to sort by."
     Endpoint to retrieve all states from the database,
     sorted by a specified column.
     """
-    # --- THE FIX ---
-    # The database hint told us all column names are lowercase.
-    # This map now correctly reflects the actual database schema.
+    # --- FINAL FIX ---
+    # This map is now 100% correct, based on the output from inspectdb.py.
+    # It maps the user-friendly API parameters to the exact, lowercase database column names.
     db_column_map = {
         "name": "state",
         "population": "population",
         "income": "income",
         "illiteracy": "illiteracy",
-        "life_exp": "life_exp",
+        "life_exp": "lifeexp",  # Corrected: no underscore
         "murder": "murder",
-        "hs_grad": "hs_grad",
+        "hs_grad": "hsgrad",   # Corrected: no underscore
         "frost": "frost",
         "area": "area"
     }
@@ -57,7 +57,6 @@ def get_all_states(sort_by: str = Query("name", description="Column to sort by."
     conn = get_db_connection()
     cursor = conn.cursor(cursor_factory=RealDictCursor)
 
-    # Since column names are simple (no spaces, all lowercase), we no longer need quotes.
     query = f"SELECT * FROM states ORDER BY {sort_column_in_db} ASC"
 
     try:
@@ -69,20 +68,30 @@ def get_all_states(sort_by: str = Query("name", description="Column to sort by."
         cursor.close()
         conn.close()
 
-    # --- THE FIX ---
-    # The API response keys need to match what the Streamlit app expects ('name', 'life_exp', etc.).
-    # The database returns lowercase keys ('state', 'life_exp', etc.). We just need to rename 'state' to 'name'.
+    # --- FINAL FIX ---
+    # This loop now correctly transforms the database output (with keys like 'state', 'lifeexp')
+    # into the JSON response the Streamlit app expects (with keys like 'name', 'life_exp').
     final_result = []
     for row in db_results:
-        # 'row' is a dictionary like {'state': 'Alabama', 'population': 3615, ...}
-        # We rename the 'state' key to 'name' for the final output.
-        row['name'] = row.pop('state')
-        final_result.append(row)
+        # 'row' is a dictionary like {'state': 'Alabama', 'lifeexp': 69.05, ...}
+        formatted_row = {
+            "name": row.get("state"),
+            "population": row.get("population"),
+            "income": row.get("income"),
+            "illiteracy": row.get("illiteracy"),
+            "life_exp": row.get("lifeexp"), # Map from 'lifeexp'
+            "murder": row.get("murder"),
+            "hs_grad": row.get("hsgrad"),   # Map from 'hsgrad'
+            "frost": row.get("frost"),
+            "area": row.get("area"),
+        }
+        final_result.append(formatted_row)
     # --- END FIX ---
 
     return final_result
 
-
 @app.get("/")
 def read_root():
     return {"message": "Welcome to the US States API"}
+
+
