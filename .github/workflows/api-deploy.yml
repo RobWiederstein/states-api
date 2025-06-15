@@ -42,11 +42,11 @@ jobs:
       - name: 'Step 4: Build, Tag, and Push Docker Image'
         uses: docker/build-push-action@v5
         with:
-          # Use the context variable defined above.
-          context: ${{ env.DOCKER_CONTEXT }}
+          # The context should be the root of your repository
+          context: .
+          # Now we explicitly point to the location of your API's Dockerfile
+          file: ${{ env.DOCKER_CONTEXT }}/Dockerfile
           push: true
-          # This correctly tags the image as both :latest and with the git SHA.
           tags: ${{ env.DOCKERHUB_IMAGE_NAME }}:latest,${{ env.DOCKERHUB_IMAGE_NAME }}:${{ github.sha }}
-          # Caching is enabled to speed up future builds.
           cache-from: type=registry,ref=${{ env.DOCKERHUB_IMAGE_NAME }}:buildcache
           cache-to: type=registry,ref=${{ env.DOCKERHUB_IMAGE_NAME }}:buildcache,mode=max
