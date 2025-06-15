@@ -11,41 +11,34 @@ on:
     branches: [ "main" ]
 
 # --- CUSTOMIZABLE VARIABLES ---
-# This is the main section to customize for new projects.
 env:
-  # Use a new, unique name for your API's Docker image.
+  # The name for your API's Docker image on Docker Hub.
   DOCKERHUB_IMAGE_NAME: ${{ secrets.DOCKERHUB_USERNAME }}/states-api
-  # This tells Docker where to find your Dockerfile (in the sub-directory).
-  DOCKER_CONTEXT: ./statex77-api
 
 # --- WORKFLOW JOBS ---
 jobs:
   build-and-push:
     runs-on: ubuntu-latest
     steps:
-      # --- Step 1: Get the Code ---
       - name: 'Step 1: Checkout Repository Code'
         uses: actions/checkout@v4
 
-      # --- Step 2: Set up Docker Build Environment ---
       - name: 'Step 2: Set up Docker Buildx'
         uses: docker/setup-buildx-action@v3
 
-      # --- Step 3: Log in to Docker Hub ---
       - name: 'Step 3: Log in to Docker Hub'
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      # --- Step 4: Build and Push the Docker Image ---
       - name: 'Step 4: Build, Tag, and Push Docker Image'
         uses: docker/build-push-action@v5
         with:
-          # The context should be the root of your repository
+          # context is '.', meaning the root of the repository.
           context: .
-          # Now we explicitly point to the location of your API's Dockerfile
-          file: ${{ env.DOCKER_CONTEXT }}/Dockerfile
+          # The 'file:' line is removed, as Docker will automatically find
+          # the 'Dockerfile' in the root of the context.
           push: true
           tags: ${{ env.DOCKERHUB_IMAGE_NAME }}:latest,${{ env.DOCKERHUB_IMAGE_NAME }}:${{ github.sha }}
           cache-from: type=registry,ref=${{ env.DOCKERHUB_IMAGE_NAME }}:buildcache
