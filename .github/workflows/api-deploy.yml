@@ -16,7 +16,7 @@ env:
   # Use a new, unique name for your API's Docker image.
   DOCKERHUB_IMAGE_NAME: ${{ secrets.DOCKERHUB_USERNAME }}/states-api
   # This tells Docker where to find your Dockerfile (in the sub-directory).
-  DOCKER_CONTEXT: ./statesx77-api
+  DOCKER_CONTEXT: ./statex77-api
 
 # --- WORKFLOW JOBS ---
 jobs:
