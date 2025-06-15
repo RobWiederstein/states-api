@@ -1,0 +1,52 @@
+# ==============================================================================
+#                 CI/CD Workflow: Build and Push States API
+# ==============================================================================
+#
+# Workflow Name: A descriptive name for this specific automated process.
+name: Build and Push States API Image
+
+# This workflow triggers on every 'push' event to the 'main' branch.
+on:
+  push:
+    branches: [ "main" ]
+
+# --- CUSTOMIZABLE VARIABLES ---
+# This is the main section to customize for new projects.
+env:
+  # Use a new, unique name for your API's Docker image.
+  DOCKERHUB_IMAGE_NAME: ${{ secrets.DOCKERHUB_USERNAME }}/states-api
+  # This tells Docker where to find your Dockerfile (in the sub-directory).
+  DOCKER_CONTEXT: ./statesx77-api
+
+# --- WORKFLOW JOBS ---
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    steps:
+      # --- Step 1: Get the Code ---
+      - name: 'Step 1: Checkout Repository Code'
+        uses: actions/checkout@v4
+
+      # --- Step 2: Set up Docker Build Environment ---
+      - name: 'Step 2: Set up Docker Buildx'
+        uses: docker/setup-buildx-action@v3
+
+      # --- Step 3: Log in to Docker Hub ---
+      - name: 'Step 3: Log in to Docker Hub'
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      # --- Step 4: Build and Push the Docker Image ---
+      - name: 'Step 4: Build, Tag, and Push Docker Image'
+        uses: docker/build-push-action@v5
+        with:
+          # Use the context variable defined above.
+          context: ${{ env.DOCKER_CONTEXT }}
+          push: true
+          # This correctly tags the image as both :latest and with the git SHA.
+          tags: ${{ env.DOCKERHUB_IMAGE_NAME }}:latest,${{ env.DOCKERHUB_IMAGE_NAME }}:${{ github.sha }}
+          # Caching is enabled to speed up future builds.
+          cache-from: type=registry,ref=${{ env.DOCKERHUB_IMAGE_NAME }}:buildcache
+          cache-to: type=registry,ref=${{ env.DOCKERHUB_IMAGE_NAME }}:buildcache,mode=max
