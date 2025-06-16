@@ -41,7 +41,8 @@ jobs:
               git clone https://github.com/${{ github.repository }}.git states-api
             else
               cd states-api
-              git pull origin main
+              git fetch origin main
+              git reset --hard origin/main
             fi
 
             # 3. Restart with Compose
