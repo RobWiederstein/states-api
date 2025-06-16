@@ -35,13 +35,14 @@ jobs:
 
             # 2. Clone or pull the repo
             cd ~
-            if [ ! -d "states-api" ]; then
+            # Clone the repo if it doesn't exist
+            if [ ! -d "states-api/.git" ]; then
+              rm -rf states-api  # remove any non-repo leftovers
               git clone https://github.com/${{ github.repository }}.git states-api
+            else
+              cd states-api
+              git pull origin main
             fi
-
-            cd states-api
-            git checkout main
-            git pull origin main
 
             # 3. Restart with Compose
             docker compose down || true
