@@ -29,21 +29,18 @@ def get_all_states(sort_by: str = Query("name", description="Column to sort by."
     Endpoint to retrieve all states from the database,
     sorted by a specified column.
     """
-    # --- FINAL FIX ---
-    # This map is now 100% correct, based on the output from inspectdb.py.
-    # It maps the user-friendly API parameters to the exact, lowercase database column names.
+    # CORRECTED: This map now perfectly matches your database schema.
     db_column_map = {
-        "name": "state",
+        "name": "state_name",
         "population": "population",
         "income": "income",
         "illiteracy": "illiteracy",
-        "life_exp": "lifeexp",  # Corrected: no underscore
+        "life_exp": "life_exp",
         "murder": "murder",
-        "hs_grad": "hsgrad",   # Corrected: no underscore
+        "hs_grad": "hs_grad",
         "frost": "frost",
         "area": "area"
     }
-    # --- END FIX ---
 
     api_sort_key = sort_by.lower()
     if api_sort_key not in db_column_map:
@@ -54,10 +51,11 @@ def get_all_states(sort_by: str = Query("name", description="Column to sort by."
 
     sort_column_in_db = db_column_map.get(api_sort_key)
 
+    # Use double quotes for column names in SQL to handle case-sensitivity and special characters.
+    query = f'SELECT * FROM states ORDER BY "{sort_column_in_db}" ASC'
+
     conn = get_db_connection()
     cursor = conn.cursor(cursor_factory=RealDictCursor)
-
-    query = f"SELECT * FROM states ORDER BY {sort_column_in_db} ASC"
 
     try:
         cursor.execute(query)
@@ -68,30 +66,10 @@ def get_all_states(sort_by: str = Query("name", description="Column to sort by."
         cursor.close()
         conn.close()
 
-    # --- FINAL FIX ---
-    # This loop now correctly transforms the database output (with keys like 'state', 'lifeexp')
-    # into the JSON response the Streamlit app expects (with keys like 'name', 'life_exp').
-    final_result = []
-    for row in db_results:
-        # 'row' is a dictionary like {'state': 'Alabama', 'lifeexp': 69.05, ...}
-        formatted_row = {
-            "name": row.get("state"),
-            "population": row.get("population"),
-            "income": row.get("income"),
-            "illiteracy": row.get("illiteracy"),
-            "life_exp": row.get("lifeexp"), # Map from 'lifeexp'
-            "murder": row.get("murder"),
-            "hs_grad": row.get("hsgrad"),   # Map from 'hsgrad'
-            "frost": row.get("frost"),
-            "area": row.get("area"),
-        }
-        final_result.append(formatted_row)
-    # --- END FIX ---
-
-    return final_result
+    # This loop is no longer needed because the DB columns and API keys now match.
+    # The 'db_results' can be returned directly. This simplifies the code.
+    return db_results
 
 @app.get("/")
 def read_root():
     return {"message": "Welcome to the US States API"}
-
-
