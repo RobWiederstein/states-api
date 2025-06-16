@@ -3,9 +3,14 @@ import psycopg2
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from psycopg2.extras import RealDictCursor
+from dotenv import load_dotenv
+
+# Load environment variables from .env
+load_dotenv()
 
 app = FastAPI(title="US States API")
 
+# Allow cross-origin requests (good for frontend development)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -14,6 +19,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Pull the database connection string from environment
 DATABASE_URL = os.getenv("DATABASE_URL")
 
 def get_db_connection():
@@ -24,52 +30,37 @@ def get_db_connection():
         raise HTTPException(status_code=500, detail=f"Database connection error: {e}")
 
 @app.get("/states")
-def get_all_states(sort_by: str = Query("name", description="Column to sort by.")):
+def get_states_by_name(name_contains: str = Query(None, description="Filter by partial state name")):
     """
-    Endpoint to retrieve all states from the database,
-    sorted by a specified column.
+    Returns states where the name contains the given substring (case-insensitive).
+    If no filter is provided, all states are returned.
     """
-    # CORRECTED: This map now perfectly matches your database schema.
-    db_column_map = {
-        "name": "state_name",
-        "population": "population",
-        "income": "income",
-        "illiteracy": "illiteracy",
-        "life_exp": "life_exp",
-        "murder": "murder",
-        "hs_grad": "hs_grad",
-        "frost": "frost",
-        "area": "area"
-    }
-
-    api_sort_key = sort_by.lower()
-    if api_sort_key not in db_column_map:
-        raise HTTPException(
-            status_code=400,
-            detail=f"Invalid sort column. Please use one of: {', '.join(db_column_map.keys())}"
-        )
-
-    sort_column_in_db = db_column_map.get(api_sort_key)
-
-    # Use double quotes for column names in SQL to handle case-sensitivity and special characters.
-    query = f'SELECT * FROM states ORDER BY "{sort_column_in_db}" ASC'
-
     conn = get_db_connection()
     cursor = conn.cursor(cursor_factory=RealDictCursor)
 
     try:
-        cursor.execute(query)
-        db_results = cursor.fetchall()
+        if name_contains:
+            query = """
+                SELECT * FROM states
+                WHERE LOWER(state_name) LIKE %s
+                ORDER BY state_name ASC
+            """
+            value = f"%{name_contains.lower()}%"
+            cursor.execute(query, (value,))
+        else:
+            query = "SELECT * FROM states ORDER BY state_name ASC"
+            cursor.execute(query)
+
+        results = cursor.fetchall()
     except psycopg2.Error as e:
         raise HTTPException(status_code=500, detail=f"Database query failed: {e}")
     finally:
         cursor.close()
         conn.close()
 
-    # This loop is no longer needed because the DB columns and API keys now match.
-    # The 'db_results' can be returned directly. This simplifies the code.
-    return db_results
+    return results
 
 @app.get("/")
 def read_root():
     return {"message": "Welcome to the US States API"}
+
