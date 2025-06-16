@@ -21,9 +21,22 @@ jobs:
       - name: Deploy to Droplet
         run: |
           ssh -o StrictHostKeyChecking=no ${{ secrets.DO_USER }}@${{ secrets.DO_HOST }} << 'EOF'
-            cd ~/states-api
-            git pull origin main
-            docker compose down
+            set -e
+
+            # Create project directory if it doesn't exist
+            mkdir -p /home/${USER}/states-api
+
+            # Clone or pull repo
+            if [ ! -d "/home/${USER}/states-api/.git" ]; then
+              git clone https://github.com/robwiederstein/states-api.git /home/${USER}/states-api
+            else
+              cd /home/${USER}/states-api
+              git pull origin main
+            fi
+
+            cd /home/${USER}/states-api
+
+            # Restart app using Docker Compose
+            docker compose down || true
             docker compose up --build -d
           EOF
-
