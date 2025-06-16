@@ -21,7 +21,7 @@ jobs:
       - name: Deploy to Droplet
         run: |
           ssh -o StrictHostKeyChecking=no ${{ secrets.DO_USER }}@${{ secrets.DO_HOST }} << 'EOF'
-            cd /root/states-api
+            cd ~/states-api
             git pull origin main
             docker compose down
             docker compose up --build -d
