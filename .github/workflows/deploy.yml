@@ -18,12 +18,34 @@ jobs:
         with:
           ssh-private-key: ${{ secrets.DO_SSH_KEY }}
 
-      - name: Deploy to Droplet
+      - name: Provision and deploy app
         run: |
           ssh -o StrictHostKeyChecking=no ${{ secrets.DO_USER }}@${{ secrets.DO_HOST }} << 'EOF'
-            cd ~/states-api
+
+            set -e  # Exit on error
+
+            # 1. Ensure Docker Compose plugin is installed
+            if ! command -v docker compose &> /dev/null; then
+              echo "Installing Docker Compose plugin..."
+              mkdir -p ~/.docker/cli-plugins
+              curl -SL https://github.com/docker/compose/releases/download/v2.27.0/docker-compose-linux-x86_64 \
+                -o ~/.docker/cli-plugins/docker-compose
+              chmod +x ~/.docker/cli-plugins/docker-compose
+            fi
+
+            # 2. Clone or pull the repo
+            cd ~
+            if [ ! -d "states-api" ]; then
+              git clone https://github.com/${{ github.repository }}.git states-api
+            fi
+
+            cd states-api
+            git checkout main
             git pull origin main
-            docker compose down
+
+            # 3. Restart with Compose
+            docker compose down || true
             docker compose up --build -d
+
           EOF
 
