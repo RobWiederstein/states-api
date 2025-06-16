@@ -1,0 +1,23 @@
+# Ignore Python cache files
+__pycache__/
+*.py[cod]
+*.pyo
+
+# Ignore test files and local artifacts
+tests/
+.env
+*.env
+*.sqlite3
+*.db
+
+# Ignore local dev tools
+*.log
+.vscode/
+.idea/
+.DS_Store
+*.swp
+
+# Git-related files
+.git
+.gitignore
+
