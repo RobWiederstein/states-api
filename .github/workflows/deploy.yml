@@ -26,8 +26,8 @@ jobs:
             git reset --hard origin/main
 
             # --- FINAL TEST: Bypassing the secret and hardcoding the URL ---
-            echo "DATABASE_URL=postgresql://postgres:yourpass@db:5432/states_db" > .env
-
+            # echo "DATABASE_URL=postgresql://postgres:yourpass@db:5432/states_db" > .env
+            echo "${{ secrets.DO_ENV_FILE }}" > .env
             # Remove old containers to prevent conflicts
             docker rm -f states-api || true
             docker compose down || true
