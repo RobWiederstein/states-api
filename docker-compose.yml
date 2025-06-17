@@ -22,8 +22,9 @@ services:
       - .env
     ports:
       - "8000:8000"
-    command: sh -c "printenv && exit 1"
-
+    command: >
+      sh -c "alembic upgrade head &&
+             gunicorn -w 4 -k uvicorn.workers.UvicornWorker api:app --bind 0.0.0.0:8000"
 volumes:
   postgres_data:
 
