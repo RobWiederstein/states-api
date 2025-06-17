@@ -24,14 +24,20 @@ jobs:
             cd ~/states-api
             git fetch origin main
             git reset --hard origin/main
+
+            echo "Creating .env file from secret..."
             echo "${{ secrets.DO_ENV_FILE }}" > .env
 
-            # --- THE FINAL FIX ---
-            # Forcefully remove the container by name if it exists to prevent conflicts.
-            # The '|| true' ensures the script doesn't fail if the container isn't there.
-            docker rm -f states-api || true
+            # --- NEW DEBUGGING STEP ---
+            # Print the contents of the .env file to the log to verify it.
+            echo "--- Verifying .env file contents ---"
+            cat .env
+            echo "------------------------------------"
 
-            # This will now correctly clean up the rest of the project
+            # Remove old containers to prevent conflicts
+            docker rm -f states-api || true
             docker compose down || true
+
+            # Start the application
             docker compose up --build -d
           EOF
