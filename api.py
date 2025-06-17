@@ -8,7 +8,7 @@ from dotenv import load_dotenv
 # Load environment variables from .env
 load_dotenv()
 
-app = FastAPI(title="US States API", , root_path="/states")
+app = FastAPI(title="US States API", root_path="/states")
 
 # Allow cross-origin requests (good for frontend development)
 app.add_middleware(
