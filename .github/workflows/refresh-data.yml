@@ -1,0 +1,29 @@
+name: Daily Data Refresh
+
+on:
+  schedule:
+    # This runs at 5:00 AM UTC every day (which is 1:00 AM EDT).
+    # You can use https://crontab.guru/ to easily create schedules.
+    - cron: '0 5 * * *'
+  # This line allows you to also run it manually from the Actions tab for testing
+  workflow_dispatch:
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Set up SSH key
+        uses: webfactory/ssh-agent@v0.7.0
+        with:
+          ssh-private-key: ${{ secrets.DO_SSH_KEY }}
+
+      - name: Run data seeding script on server
+        run: |
+          echo "Connecting to server to run the data refresh..."
+          ssh -o StrictHostKeyChecking=no ${{ secrets.DO_USER }}@${{ secrets.DO_HOST }} << EOF
+            echo "Executing seed script inside the running states-api container..."
+            # Use 'docker exec' to run a command inside a *currently running* container
+            docker exec states-api python seed.py
+            echo "Data refresh script finished."
+          EOF
