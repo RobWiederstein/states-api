@@ -4,11 +4,17 @@ from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from psycopg2.extras import RealDictCursor
 from dotenv import load_dotenv
-
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
 # Load environment variables from .env
 load_dotenv()
 
 app = FastAPI(title="US States API", root_path="/states")
+
+# throttle requests to 10 per minute
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 # Allow cross-origin requests (good for frontend development)
 app.add_middleware(
@@ -30,6 +36,7 @@ def get_db_connection():
         raise HTTPException(status_code=500, detail=f"Database connection error: {e}")
 
 @app.get("/states")
+@limiter.limit("100/minute")
 def get_states_by_name(name_contains: str = Query(None, description="Filter by partial state name")):
     """
     Returns states where the name contains the given substring (case-insensitive).
@@ -61,6 +68,7 @@ def get_states_by_name(name_contains: str = Query(None, description="Filter by p
     return results
 
 @app.get("/")
+@limiter.limit("100/minute")
 def read_root():
     return {"message": "Welcome to the US States API"}
 

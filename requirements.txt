@@ -7,3 +7,4 @@ python-dotenv==1.1.0
 alembic==1.16.1
 httpx
 requests
+slowapi
