@@ -20,11 +20,19 @@ jobs:
 
       - name: Deploy to Droplet
         run: |
-          ssh -o StrictHostKeyChecking=no ${{ secrets.DO_USER }}@${{ secrets.DO_HOST }} << 'EOF'
+          # CHANGE 1: The single quotes around EOF are removed.
+          # This is critical. It allows the GitHub Secret variable
+          # to be used inside the script.
+          ssh -o StrictHostKeyChecking=no ${{ secrets.DO_USER }}@${{ secrets.DO_HOST }} << EOF
             cd ~/states-api
             git fetch origin main
             git reset --hard origin/main
+
+            # CHANGE 2: This new line creates the .env file on your server
+            # using the value you stored in the DO_ENV_FILE secret.
+            # This must run BEFORE "docker compose up".
+            echo "${{ secrets.DO_ENV_FILE }}" > .env
+
             docker compose down || true
             docker compose up --build -d
           EOF
-
