@@ -17,7 +17,6 @@ jobs:
         uses: webfactory/ssh-agent@v0.7.0
         with:
           ssh-private-key: ${{ secrets.DO_SSH_KEY }}
-
       - name: Deploy to Droplet
         run: |
           ssh -o StrictHostKeyChecking=no ${{ secrets.DO_USER }}@${{ secrets.DO_HOST }} << EOF
@@ -25,19 +24,15 @@ jobs:
             git fetch origin main
             git reset --hard origin/main
 
-            echo "Creating .env file from secret..."
+            # --- NEW, MORE POWERFUL DEBUGGING STEP ---
+            # We will print the raw bytes of the secret to find any hidden characters.
+            echo "--- Hex dump of DO_ENV_FILE secret ---"
+            echo "${{ secrets.DO_ENV_FILE }}" | xxd
+            echo "--------------------------------------"
+
+            # The rest of the script continues as before
             echo "${{ secrets.DO_ENV_FILE }}" > .env
-
-            # --- NEW DEBUGGING STEP ---
-            # Print the contents of the .env file to the log to verify it.
-            echo "--- Verifying .env file contents ---"
-            cat .env
-            echo "------------------------------------"
-
-            # Remove old containers to prevent conflicts
             docker rm -f states-api || true
             docker compose down || true
-
-            # Start the application
             docker compose up --build -d
           EOF
