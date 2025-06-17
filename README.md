@@ -47,3 +47,12 @@ This project served as a deep dive into full-stack deployment. Key friction poin
     * **Lesson:** It's best practice to use granular, individual secrets (e.g., `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_HOST`) and build the connection string within the workflow. This makes debugging far easier.
 4.  **Application Configuration Precedence:** The final bug was that the Python code in `migrations/env.py` was ignoring all environment variables and reading a hardcoded URL from `alembic.ini`.
     * **Lesson:** Understand the full configuration chain of your application and its libraries. The `.env` file is only useful if the application code is actually configured to read from it.
+
+## Acknowledgements
+
+The project relied upon a number of initiatives, some of which are listed below:
+
+* **[SQLAlchemy](https://www.sqlalchemy.org/):** As the powerful Object Relational Mapper (ORM) for all database interactions.
+* **[Alembic](https://alembic.sqlalchemy.org/):** For managing database schema migrations and the initial data seeding process.
+* **[PostgreSQL](https://www.postgresql.org/):** As the world's most advanced open-source relational database, serving as the project's data persistence layer.
+
